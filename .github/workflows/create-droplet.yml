@@ -1,0 +1,182 @@
+name: Deploy in cluster kubernetes
+
+on:
+  workflow_call:
+    inputs:
+      name:
+        required: true
+        type: string
+      region:
+        required: false
+        type: string
+        default: 'nyc3'
+      size:
+        required: false
+        type: string
+        default: 's-1vcpu-1gb'
+      image:
+        required: false
+        type: string
+        default: 'ubuntu-22-04-x64'
+      publicKey:
+        required: false
+        type: string
+        default: ''
+      destroy:
+        required: false
+        type: boolean
+        default: false
+      organization:
+        required: true
+        type: string
+      workspace:
+        required: true
+        type: string
+      machine-type:
+        required: false
+        type: string
+        default: 'e2-standard-4'
+    secrets:
+      digitalocean_token:
+        required: true
+      snow-github-token:
+        required: true
+      pulumi-token:
+        required: true
+      snow-token: 
+        required: false
+    outputs:
+      droplet_ip:
+        description: 'IP address of the created DigitalOcean Droplet'
+        value: ${{ jobs.create-digitalocean-droplet.outputs.droplet_ip  }}
+     
+    
+   
+jobs:
+
+  create-digitalocean-droplet: 
+    runs-on: ubuntu-22.04
+    outputs:
+      droplet_ip: ${{ steps.pulumi.outputs.droplet_ip }}
+    
+    
+    steps:
+
+      # checkout app repository
+      - uses: actions/checkout@v4
+
+      # Set up DigitalOcean CLI
+      - name: Install doctl
+        uses: digitalocean/action-doctl@v2
+        with:
+          token: ${{ secrets.digitalocean_token }}
+      
+      # Check in VM instanse exists
+      - name: Validate Droplet
+        id: validate-droplet
+        run: |
+          echo "check if VM instance exists"
+          if doctl compute droplet list --format "Name" | grep -q "${{ inputs.name }}"; then 
+            echo "EXIST_DROPLET='true'" >> $GITHUB_OUTPUT
+          else
+              echo "EXIST_DROPLET='false'" >> $GITHUB_OUTPUT
+          fi  
+      
+      
+      # Clone Droplet repository
+      - name: Clone Droplet repository
+        run: |
+          echo "create compute engine in CGP"
+          git config --global user.email yabin.monroy.1@gmail.com && git config --global user.name yabinboxes
+          echo ${{ secrets.snow-github-token }} | gh auth login --with-token
+          git clone https://oath2:${{ secrets.snow-github-token}}@github.com/snow-monkeys-org/kubernetes-pulumi-cluster.git
+          cd kubernetes-pulumi-cluster/v1/modules/dev/digitalocean/compute_instance
+          echo "------------ list files ------------"
+          ls
+          echo "---------------------"
+          npm ci
+
+      # setup pulumi
+      - name: Pulumi setup & Setup Pulumi configs
+        run: |
+          cd kubernetes-pulumi-cluster/v1/modules/dev/digitalocean/compute_instance
+          curl -fsSL https://get.pulumi.com | sh
+          export PULUMI_ACCESS_TOKEN=${{ secrets.pulumi-token }}
+          pulumi login
+      
+      - name: Pulumi create Stack
+        if: contains(steps.validate-droplet.outputs.EXIST_DROPLET, 'false')
+        continue-on-error: true
+        run: |
+          cd kubernetes-pulumi-cluster/v1/modules/dev/digitalocean/compute_instance
+          pulumi stack init "dev"
+
+
+      - name: Pulumi create or update Droplet
+        id: pulumi
+        if: ${{ ! inputs.destroy }}
+        env:
+          DIGITALOCEAN_TOKEN: ${{ secrets.digitalocean_token}}
+          PULUMI_ACCESS_TOKEN: ${{ secrets.pulumi-token}}
+        run: |
+          cd kubernetes-pulumi-cluster/v1/modules/dev/digitalocean/compute_instance
+          pulumi stack select "dev"
+          pulumi config set name "${{ inputs.name }}" -s "dev"
+          pulumi config set region "${{ inputs.region }}" -s "dev"
+          pulumi config set size "${{ inputs.size }}" -s "dev"
+          pulumi config set image "${{ inputs.image }}" -s "dev"
+          pulumi config set publicKey "${{ inputs.publicKey }}" -s "dev"
+          pulumi up -s 'dev' -y
+          echo "droplet_ip=$(pulumi stack output dropletIp)" >> "$GITHUB_OUTPUT"
+
+      - name: Pulumi destroy or update Droplet
+        if: ${{ inputs.destroy }}
+        env:
+          DIGITALOCEAN_TOKEN: ${{ secrets.digitalocean_token}}
+          PULUMI_ACCESS_TOKEN: ${{ secrets.pulumi-token}}
+        run: |
+          cd kubernetes-pulumi-cluster/v1/modules/dev/digitalocean/compute_instance
+          pulumi stack select "dev"
+          pulumi config set name "${{ inputs.name }}" -s "dev"
+          pulumi config set region "${{ inputs.region }}" -s "dev"
+          pulumi config set size "${{ inputs.size }}" -s "dev"
+          pulumi config set image "${{ inputs.image }}" -s "dev"
+          pulumi config set publicKey "${{ inputs.publicKey }}" -s "dev"
+          pulumi destroy -s 'dev' -y
+
+         
+
+#      - run: echo "ip ${{ steps.pulumi.outputs.dropletIp }}"
+
+        
+     
+#      - uses: pulumi/actions@v6
+#        if: ${{ inputs.destroy == true && contains(steps.validate-droplet.outputs.EXIST_DROPLET, 'true') }}
+#        continue-on-error: true
+#        env:
+#          PULUMI_ACCESS_TOKEN: ${{ secrets.pulumi-token }}
+#        with:
+#          command: destroy
+#          stack-name: dev
+    
+
+      # If exist then connect to it and re-deploy application (scripts/app-script.sh)
+#      - name: Setup script
+#        if: contains(steps.validate-droplet.outputs.EXIST_DROPLET, 'false')
+#        run: |
+#          echo "connect to VM instance and re-deploy application"
+#          doctl compute ssh ${{ inputs.name }} --ssh-command 'bash -s' < ./scripts/init_script.sh
+
+      # If exist then connect to it and re-deploy application (scripts/app-script.sh)
+#      - name: Update script
+#        if: contains(steps.validate-droplet.outputs.EXIST_DROPLET, 'true')
+#        run: |
+#          echo "connect to VM instance and re-deploy application"
+#          doctl compute ssh ${{ inputs.name }} --ssh-command 'bash -s' < ./scripts/app_script.sh
+       
+        
+
+      # If exist then update SQL database (scripts/sql-script.sh)
+#      - run: echo "update SQL database"
+
+    
