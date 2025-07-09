@@ -34,7 +34,7 @@ on:
       digitalocean-token:
         required: true
       public-key:
-        required: true
+        required: false
       snow-github-token:
         required: true
       pulumi-token:
