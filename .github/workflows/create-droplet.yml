@@ -121,7 +121,7 @@ jobs:
           pulumi config set region "${{ inputs.region }}" -s ${{ inputs.stack }}
           pulumi config set size "${{ inputs.size }}" -s ${{ inputs.stack }}
           pulumi config set image "${{ inputs.image }}" -s ${{ inputs.stack }}
-          pulumi config set publicKey "${{ inputs.public-key }}" -s ${{ inputs.stack }}
+          pulumi config set --secret publicKey "${{ inputs.public-key }}" -s ${{ inputs.stack }}
           pulumi config set initScript "${{ inputs.init-script }}" -s ${{ inputs.stack }}
           pulumi up -s ${{ inputs.stack }} -y
           echo "droplet_ip=$(pulumi stack output dropletIp)" >> "$GITHUB_OUTPUT"
@@ -140,7 +140,6 @@ jobs:
           pulumi config set image "${{ inputs.image }}" -s ${{ inputs.stack }}
           pulumi config set publicKey "${{ inputs.public-key }}" -s ${{ inputs.stack }}
           pulumi destroy -s ${{ inputs.stack }} -y
-
 
       # If exist then connect to it and re-deploy application (scripts/app-script.sh)
 #      - name: Setup script
