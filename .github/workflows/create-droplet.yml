@@ -22,11 +22,7 @@ on:
         required: false
         type: string
         default: 'ubuntu-22-04-x64'
-      publicKey:
-        required: false
-        type: string
-        default: ''
-      initScript:
+      init-script:
         required: false
         type: string
         default: '#!/bin/bash'
@@ -35,7 +31,9 @@ on:
         type: boolean
         default: false
     secrets:
-      digitalocean_token:
+      digitalocean-token:
+        required: true
+      public-key:
         required: true
       snow-github-token:
         required: true
@@ -67,7 +65,7 @@ jobs:
       - name: Install doctl
         uses: digitalocean/action-doctl@v2
         with:
-          token: ${{ secrets.digitalocean_token }}
+          token: ${{ secrets.digitalocean-token }}
       
       # Check in VM instanse exists
       - name: Validate Droplet
@@ -114,7 +112,7 @@ jobs:
         id: pulumi
         if: ${{ ! inputs.destroy }}
         env:
-          DIGITALOCEAN_TOKEN: ${{ secrets.digitalocean_token}}
+          DIGITALOCEAN_TOKEN: ${{ secrets.digitalocean-token}}
           PULUMI_ACCESS_TOKEN: ${{ secrets.pulumi-token}}
         run: |
           cd iac-pulumi/v1/modules/dev/digitalocean/compute_instance
@@ -123,15 +121,15 @@ jobs:
           pulumi config set region "${{ inputs.region }}" -s ${{ inputs.stack }}
           pulumi config set size "${{ inputs.size }}" -s ${{ inputs.stack }}
           pulumi config set image "${{ inputs.image }}" -s ${{ inputs.stack }}
-          pulumi config set publicKey "${{ inputs.publicKey }}" -s ${{ inputs.stack }}
-          pulumi config set initScript "${{ inputs.initScript }}" -s ${{ inputs.stack }}
+          pulumi config set publicKey "${{ inputs.public-key }}" -s ${{ inputs.stack }}
+          pulumi config set initScript "${{ inputs.init-script }}" -s ${{ inputs.stack }}
           pulumi up -s ${{ inputs.stack }} -y
           echo "droplet_ip=$(pulumi stack output dropletIp)" >> "$GITHUB_OUTPUT"
 
       - name: Pulumi destroy or update Droplet
         if: ${{ inputs.destroy }}
         env:
-          DIGITALOCEAN_TOKEN: ${{ secrets.digitalocean_token}}
+          DIGITALOCEAN_TOKEN: ${{ secrets.digitalocean-token}}
           PULUMI_ACCESS_TOKEN: ${{ secrets.pulumi-token}}
         run: |
           cd iac-pulumi/v1/modules/dev/digitalocean/compute_instance
@@ -140,7 +138,7 @@ jobs:
           pulumi config set region "${{ inputs.region }}" -s ${{ inputs.stack }}
           pulumi config set size "${{ inputs.size }}" -s ${{ inputs.stack }}
           pulumi config set image "${{ inputs.image }}" -s ${{ inputs.stack }}
-          pulumi config set publicKey "${{ inputs.publicKey }}" -s ${{ inputs.stack }}
+          pulumi config set publicKey "${{ inputs.public-key }}" -s ${{ inputs.stack }}
           pulumi destroy -s ${{ inputs.stack }} -y
 
 
