@@ -1,8 +1,12 @@
-name: Deploy in cluster kubernetes
+name: Create Droplet with Pulumi
 
 on:
   workflow_call:
     inputs:
+      stack:
+        required: false
+        type: string
+        default: 'dev'
       name:
         required: true
         type: string
@@ -22,20 +26,14 @@ on:
         required: false
         type: string
         default: ''
+      initScript:
+        required: false
+        type: string
+        default: '#!/bin/bash'
       destroy:
         required: false
         type: boolean
         default: false
-      organization:
-        required: true
-        type: string
-      workspace:
-        required: true
-        type: string
-      machine-type:
-        required: false
-        type: string
-        default: 'e2-standard-4'
     secrets:
       digitalocean_token:
         required: true
@@ -89,8 +87,8 @@ jobs:
           echo "create compute engine in CGP"
           git config --global user.email yabin.monroy.1@gmail.com && git config --global user.name yabinboxes
           echo ${{ secrets.snow-github-token }} | gh auth login --with-token
-          git clone https://oath2:${{ secrets.snow-github-token}}@github.com/snow-monkeys-org/kubernetes-pulumi-cluster.git
-          cd kubernetes-pulumi-cluster/v1/modules/dev/digitalocean/compute_instance
+          git clone https://oath2:${{ secrets.snow-github-token}}@github.com/snow-monkeys-modules/iac-pulumi.git
+          cd snow-monkeys-modules/v1/modules/dev/digitalocean/compute_instance
           echo "------------ list files ------------"
           ls
           echo "---------------------"
@@ -99,7 +97,7 @@ jobs:
       # setup pulumi
       - name: Pulumi setup & Setup Pulumi configs
         run: |
-          cd kubernetes-pulumi-cluster/v1/modules/dev/digitalocean/compute_instance
+          cd snow-monkeys-modules/v1/modules/dev/digitalocean/compute_instance
           curl -fsSL https://get.pulumi.com | sh
           export PULUMI_ACCESS_TOKEN=${{ secrets.pulumi-token }}
           pulumi login
@@ -108,8 +106,8 @@ jobs:
         if: contains(steps.validate-droplet.outputs.EXIST_DROPLET, 'false')
         continue-on-error: true
         run: |
-          cd kubernetes-pulumi-cluster/v1/modules/dev/digitalocean/compute_instance
-          pulumi stack init "dev"
+          cd snow-monkeys-modules/v1/modules/dev/digitalocean/compute_instance
+          pulumi stack init ${{ inputs.stack }}
 
 
       - name: Pulumi create or update Droplet
@@ -119,14 +117,15 @@ jobs:
           DIGITALOCEAN_TOKEN: ${{ secrets.digitalocean_token}}
           PULUMI_ACCESS_TOKEN: ${{ secrets.pulumi-token}}
         run: |
-          cd kubernetes-pulumi-cluster/v1/modules/dev/digitalocean/compute_instance
-          pulumi stack select "dev"
-          pulumi config set name "${{ inputs.name }}" -s "dev"
-          pulumi config set region "${{ inputs.region }}" -s "dev"
-          pulumi config set size "${{ inputs.size }}" -s "dev"
-          pulumi config set image "${{ inputs.image }}" -s "dev"
-          pulumi config set publicKey "${{ inputs.publicKey }}" -s "dev"
-          pulumi up -s 'dev' -y
+          cd snow-monkeys-modules/v1/modules/dev/digitalocean/compute_instance
+          pulumi stack select ${{ inputs.stack }}
+          pulumi config set name "${{ inputs.name }}" -s ${{ inputs.stack }}
+          pulumi config set region "${{ inputs.region }}" -s ${{ inputs.stack }}
+          pulumi config set size "${{ inputs.size }}" -s ${{ inputs.stack }}
+          pulumi config set image "${{ inputs.image }}" -s ${{ inputs.stack }}
+          pulumi config set publicKey "${{ inputs.publicKey }}" -s ${{ inputs.stack }}
+          pulumi config set initScript "${{ inputs.initScript }}" -s ${{ inputs.stack }}
+          pulumi up -s ${{ inputs.stack }} -y
           echo "droplet_ip=$(pulumi stack output dropletIp)" >> "$GITHUB_OUTPUT"
 
       - name: Pulumi destroy or update Droplet
@@ -135,30 +134,15 @@ jobs:
           DIGITALOCEAN_TOKEN: ${{ secrets.digitalocean_token}}
           PULUMI_ACCESS_TOKEN: ${{ secrets.pulumi-token}}
         run: |
-          cd kubernetes-pulumi-cluster/v1/modules/dev/digitalocean/compute_instance
-          pulumi stack select "dev"
-          pulumi config set name "${{ inputs.name }}" -s "dev"
-          pulumi config set region "${{ inputs.region }}" -s "dev"
-          pulumi config set size "${{ inputs.size }}" -s "dev"
-          pulumi config set image "${{ inputs.image }}" -s "dev"
-          pulumi config set publicKey "${{ inputs.publicKey }}" -s "dev"
-          pulumi destroy -s 'dev' -y
+          cd snow-monkeys-modules/v1/modules/dev/digitalocean/compute_instance
+          pulumi stack select ${{ inputs.stack }}
+          pulumi config set name "${{ inputs.name }}" -s ${{ inputs.stack }}
+          pulumi config set region "${{ inputs.region }}" -s ${{ inputs.stack }}
+          pulumi config set size "${{ inputs.size }}" -s ${{ inputs.stack }}
+          pulumi config set image "${{ inputs.image }}" -s ${{ inputs.stack }}
+          pulumi config set publicKey "${{ inputs.publicKey }}" -s ${{ inputs.stack }}
+          pulumi destroy -s ${{ inputs.stack }} -y
 
-         
-
-#      - run: echo "ip ${{ steps.pulumi.outputs.dropletIp }}"
-
-        
-     
-#      - uses: pulumi/actions@v6
-#        if: ${{ inputs.destroy == true && contains(steps.validate-droplet.outputs.EXIST_DROPLET, 'true') }}
-#        continue-on-error: true
-#        env:
-#          PULUMI_ACCESS_TOKEN: ${{ secrets.pulumi-token }}
-#        with:
-#          command: destroy
-#          stack-name: dev
-    
 
       # If exist then connect to it and re-deploy application (scripts/app-script.sh)
 #      - name: Setup script
