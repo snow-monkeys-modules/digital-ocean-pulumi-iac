@@ -88,7 +88,7 @@ jobs:
           git config --global user.email yabin.monroy.1@gmail.com && git config --global user.name yabinboxes
           echo ${{ secrets.snow-github-token }} | gh auth login --with-token
           git clone https://oath2:${{ secrets.snow-github-token}}@github.com/snow-monkeys-modules/iac-pulumi.git
-          cd snow-monkeys-modules/v1/modules/dev/digitalocean/compute_instance
+          cd iac-pulumi/v1/modules/dev/digitalocean/compute_instance
           echo "------------ list files ------------"
           ls
           echo "---------------------"
@@ -97,7 +97,7 @@ jobs:
       # setup pulumi
       - name: Pulumi setup & Setup Pulumi configs
         run: |
-          cd snow-monkeys-modules/v1/modules/dev/digitalocean/compute_instance
+          cd iac-pulumi/v1/modules/dev/digitalocean/compute_instance
           curl -fsSL https://get.pulumi.com | sh
           export PULUMI_ACCESS_TOKEN=${{ secrets.pulumi-token }}
           pulumi login
@@ -106,7 +106,7 @@ jobs:
         if: contains(steps.validate-droplet.outputs.EXIST_DROPLET, 'false')
         continue-on-error: true
         run: |
-          cd snow-monkeys-modules/v1/modules/dev/digitalocean/compute_instance
+          cd iac-pulumi/v1/modules/dev/digitalocean/compute_instance
           pulumi stack init ${{ inputs.stack }}
 
 
@@ -117,7 +117,7 @@ jobs:
           DIGITALOCEAN_TOKEN: ${{ secrets.digitalocean_token}}
           PULUMI_ACCESS_TOKEN: ${{ secrets.pulumi-token}}
         run: |
-          cd snow-monkeys-modules/v1/modules/dev/digitalocean/compute_instance
+          cd iac-pulumi/v1/modules/dev/digitalocean/compute_instance
           pulumi stack select ${{ inputs.stack }}
           pulumi config set name "${{ inputs.name }}" -s ${{ inputs.stack }}
           pulumi config set region "${{ inputs.region }}" -s ${{ inputs.stack }}
@@ -134,7 +134,7 @@ jobs:
           DIGITALOCEAN_TOKEN: ${{ secrets.digitalocean_token}}
           PULUMI_ACCESS_TOKEN: ${{ secrets.pulumi-token}}
         run: |
-          cd snow-monkeys-modules/v1/modules/dev/digitalocean/compute_instance
+          cd iac-pulumi/v1/modules/dev/digitalocean/compute_instance
           pulumi stack select ${{ inputs.stack }}
           pulumi config set name "${{ inputs.name }}" -s ${{ inputs.stack }}
           pulumi config set region "${{ inputs.region }}" -s ${{ inputs.stack }}
