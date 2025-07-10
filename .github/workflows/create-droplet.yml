@@ -22,10 +22,6 @@ on:
         required: false
         type: string
         default: 'ubuntu-22-04-x64'
-      init-script:
-        required: false
-        type: string
-        default: '#!/bin/bash'
       destroy:
         required: false
         type: boolean
@@ -122,7 +118,6 @@ jobs:
           pulumi config set size "${{ inputs.size }}" -s ${{ inputs.stack }}
           pulumi config set image "${{ inputs.image }}" -s ${{ inputs.stack }}
           pulumi config set publicKey "${{ secrets.public-key }}" -s ${{ inputs.stack }} --secret
-          pulumi config set initScript "${{ inputs.init-script }}" -s ${{ inputs.stack }}
           pulumi up -s ${{ inputs.stack }} -y
           echo "droplet_ip=$(pulumi stack output dropletIp)" >> "$GITHUB_OUTPUT"
 
@@ -140,6 +135,7 @@ jobs:
           pulumi config set image "${{ inputs.image }}" -s ${{ inputs.stack }}
           pulumi config set publicKey "${{ secrets.public-key }}" -s ${{ inputs.stack }} --secret
           pulumi destroy -s ${{ inputs.stack }} -y
+
 
       # If exist then connect to it and re-deploy application (scripts/app-script.sh)
 #      - name: Setup script
