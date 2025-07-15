@@ -22,6 +22,10 @@ on:
         required: false
         type: string
         default: 'ubuntu-22-04-x64'
+      userData:
+        required: false
+        type: string
+        default: ''
       destroy:
         required: false
         type: boolean
@@ -117,6 +121,7 @@ jobs:
           pulumi config set region "${{ inputs.region }}" -s ${{ inputs.stack }}
           pulumi config set size "${{ inputs.size }}" -s ${{ inputs.stack }}
           pulumi config set image "${{ inputs.image }}" -s ${{ inputs.stack }}
+          pulumi config set userData "${{ inputs.userData }}" -s ${{ inputs.userData }}
           pulumi config set publicKey "${{ secrets.public-key }}" -s ${{ inputs.stack }} --secret
           pulumi up -s ${{ inputs.stack }} -y
           echo "droplet_ip=$(pulumi stack output dropletIp)" >> "$GITHUB_OUTPUT"
