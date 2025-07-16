@@ -65,16 +65,7 @@ jobs:
         if: ${{ inputs.enable-testing }}
         run: |
           ls
-          echo "copy code to root for testing"
-          cd digitalocean-droplet
-          cp -r * ../
-          echo "---- display files in root ----"
-          ls
-          echo "---- end display files in root ----"
-#          cp -r ./digitalocean-droplet/* .
-#          echo "---- display files in root ----"
-#          ls
-#          echo "---- end display files in root ----"
+          echo " no copy to root for testing is required because there is no application code in this module"
 
       # Set up DigitalOcean CLI
       - name: Install doctl
