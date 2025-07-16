@@ -66,10 +66,15 @@ jobs:
         run: |
           ls
           echo "copy code to root for testing"
-          cp -r ./digitalocean-droplet/* /
+          cd digitalocean-droplet
+          cp -r * ../
           echo "---- display files in root ----"
           ls
           echo "---- end display files in root ----"
+#          cp -r ./digitalocean-droplet/* .
+#          echo "---- display files in root ----"
+#          ls
+#          echo "---- end display files in root ----"
 
       # Set up DigitalOcean CLI
       - name: Install doctl
