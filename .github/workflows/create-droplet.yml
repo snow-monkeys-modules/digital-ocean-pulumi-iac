@@ -61,6 +61,12 @@ jobs:
       # checkout app repository
       - uses: actions/checkout@v4
 
+      - run: |
+          echo "---- display files in root ----"
+          ls
+          echo "---- end display files in root ----"
+
+
       - name: copy code to root for testing
         if: ${{ inputs.enable-testing }}
         run: |
